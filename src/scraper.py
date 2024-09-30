@@ -8,6 +8,7 @@ from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from time import sleep
 
+
 # Function to scrape the main fragrance list
 def scrape_fragrance_links():
     url = 'https://www.wikiparfum.com/en/fragrances'
@@ -42,7 +43,7 @@ def scrape_fragrance_data(lnk):
     # Get the page source and parse it with BeautifulSoup
     soup = BeautifulSoup(driver.page_source, 'html.parser')
 
-    brand = soup.find('h6',class_='uppercase text-14 md:text-labLarge').text.strip()
+    brand = soup.find('h6', class_='uppercase text-14 md:text-labLarge').text.strip()
     name = soup.find('h1', class_='text-h1Mobile md:text-h1 font-secondary mt-6 mb-1.5').text.strip()
     desc = soup.find('span', class_='text-16 md:text-18 font-light markdown').text.strip()
 
