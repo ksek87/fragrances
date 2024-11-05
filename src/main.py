@@ -1,15 +1,16 @@
 import scraper as sc
 import pandas as pd
 
-driver = sc.create_new_driver()
-links = sc.scrape_fragrance_links(driver)
-print(links)
-# all_data = []
-# #for link in links:
-# print(links[0])
-# fragrance_data = sc.scrape_fragrance_data(links, driver)
-# all_data.append(fragrance_data)
-#
-# df = pd.DataFrame(all_data)
-# df.to_csv("../data/fragrance-data.csv")
-# driver.quit()
+if __name__ == "__main__":
+    driver = sc.create_new_driver()
+    links = sc.scrape_fragrance_links(driver)
+    print('Number of links:', len(links))
+    all_data = []
+    for link in links:
+        fragrance_data = sc.scrape_fragrance_data(link, driver)
+        all_data.append(fragrance_data)
+
+    df = pd.DataFrame(all_data)
+    df.to_csv("../data/fragrance-data.csv")
+    driver.quit()
+    print('Dataset saved as CSV file')

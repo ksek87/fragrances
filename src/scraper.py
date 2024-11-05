@@ -1,6 +1,7 @@
 import requests
 from bs4 import BeautifulSoup
 import pandas as pd
+from selenium.webdriver import ActionChains
 from selenium.webdriver.support.wait import WebDriverWait
 from sqlalchemy import create_engine, text
 from selenium import webdriver
@@ -55,11 +56,31 @@ def scrape_fragrance_links(driver):
 
         # Click the "Load More" button
         try:
-            load_more_button = driver.find_element(By.XPATH, "//button[text()='Load more']")
-            load_more_button.click()
+            # Wait for the button to be clickable
+            WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.XPATH, "//button[text()='Load more']")))
+
+            button = driver.find_element(By.XPATH, "//button[text()='Load more']")
+
+            # Check if the button is disabled by checking class or disabled attribute
+            if "disabled" in button.get_attribute("class") or button.get_attribute("disabled") is not None:
+                # Remove the 'disabled' class or attribute and try clicking it
+                driver.execute_script("arguments[0].removeAttribute('disabled');", button)
+                driver.execute_script("arguments[0].classList.remove('disabled:text-grey700');", button)
+
+                # Scroll the button into view
+                driver.execute_script("arguments[0].scrollIntoView(true);", button)
+
+                # Use ActionChains to click the button to ensure no interception
+                actions = ActionChains(driver)
+                actions.move_to_element(button).click().perform()
+
+                print("Clicked 'Load more' button.")
+            else:
+                print("Button is not disabled or already clicked.")
+
         except Exception as e:
             print("No more items to load or error occurred:", e)
-            break  # Exit if the button is not found or another error occurs
+            continue  # Exit if the button is not found or another error occurs
 
     driver.quit()  # Close the browser
     return links_scraped
