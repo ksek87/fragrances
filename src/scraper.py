@@ -1,41 +1,21 @@
-import requests
-from bs4 import BeautifulSoup
+import csv
+import time
 import pandas as pd
-from selenium.webdriver import ActionChains
-from selenium.webdriver.support.wait import WebDriverWait
-from sqlalchemy import create_engine, text
-from selenium import webdriver
-from selenium.webdriver.common.by import By
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from time import sleep
-
+from selenium.webdriver.common.action_chains import ActionChains
+from sqlalchemy import create_engine, text
+from bs4 import BeautifulSoup
 
 # Function to scrape the main fragrance list
-# def scrape_fragrance_links():
-#     url = 'https://www.wikiparfum.com/en/fragrances'
-#     base_url = 'https://www.wikiparfum.com'
-#     response = requests.get(url)
-#     soup = BeautifulSoup(response.text, 'html.parser')
-#
-#     links_scraped = []
-#     for item in soup.find_all('div', class_='col-span-4 sm:col-span-2 md:col-span-4 lg:col-span-3 xl:col-span-2'):
-#         link = item.find('a')['href']
-#         links_scraped.append(base_url + link)
-#
-#     return links_scraped
-from selenium import webdriver
-from selenium.webdriver.common.by import By
-import time
-
-
 def scrape_fragrance_links(driver):
     base_url = 'https://www.wikiparfum.com'
     links_scraped = []
+    links_count = 0  # Track the number of links scraped
 
-    # Set up Selenium WebDriver (make sure to have the correct driver for your browser)
-    driver = webdriver.Chrome()  # or webdriver.Firefox() based on your preference
     driver.get('https://www.wikiparfum.com/en/fragrances')
 
     while True:
@@ -50,43 +30,56 @@ def scrape_fragrance_links(driver):
 
         for item in items:
             link = item.find_element(By.TAG_NAME, 'a').get_attribute('href')
-            links_scraped.append(link)
+            if link not in links_scraped:  # Avoid duplicate links
+                links_scraped.append(link)
+                links_count += 1
 
-        print(f'Page scraped, found {len(items)} items.')  # Print the number of items found
+        print(f'Page scraped, found {len(items)} items. Total links scraped: {links_count}')
+
+        # Save to CSV every 500 links
+        if links_count % 500 == 0:
+            print(f"Saving CSV with {links_count} links...")
+            save_to_csv(links_scraped)
+
+        # Check if we need to wait due to request limit (simulated here)
+        if links_count % 100 == 0:  # Adjust this as needed
+            print("Waiting due to rate-limiting or request limit...")
+            time.sleep(5)  # Wait for 5 seconds (adjust as needed)
 
         # Click the "Load More" button
         try:
-            # Wait for the button to be clickable
             WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.XPATH, "//button[text()='Load more']")))
 
             button = driver.find_element(By.XPATH, "//button[text()='Load more']")
 
-            # Check if the button is disabled by checking class or disabled attribute
-            if "disabled" in button.get_attribute("class") or button.get_attribute("disabled") is not None:
-                # Remove the 'disabled' class or attribute and try clicking it
-                driver.execute_script("arguments[0].removeAttribute('disabled');", button)
-                driver.execute_script("arguments[0].classList.remove('disabled:text-grey700');", button)
+            # Force click the "Load More" button, regardless of its disabled state
+            driver.execute_script("arguments[0].click();", button)  # Bypass the disabled state
 
-                # Scroll the button into view
-                driver.execute_script("arguments[0].scrollIntoView(true);", button)
-
-                # Use ActionChains to click the button to ensure no interception
-                actions = ActionChains(driver)
-                actions.move_to_element(button).click().perform()
-
-                print("Clicked 'Load more' button.")
-            else:
-                print("Button is not disabled or already clicked.")
+            print("Clicked 'Load more' button.")
 
         except Exception as e:
             print("No more items to load or error occurred:", e)
-            continue  # Exit if the button is not found or another error occurs
+            break  # Exit if the button is not found or another error occurs
 
-    driver.quit()  # Close the browser
+    # Save to CSV after the loop if links were collected
+    if links_scraped:
+        print(f"Final saving CSV with {links_count} links...")
+        save_to_csv(links_scraped)
+
     return links_scraped
 
 
+# Function to save links to CSV file
+def save_to_csv(links_scraped):
+    """ Save the scraped links to a CSV file """
+    with open('fragrance_links.csv', mode='w', newline='', encoding='utf-8') as file:
+        writer = csv.writer(file)
+        writer.writerow(["Fragrance Link"])
+        for link in links_scraped:
+            writer.writerow([link])
 
+
+# Create new Selenium WebDriver
 def create_new_driver():
     # Initialize the Selenium WebDriver
     service = Service(r"C:\Users\admin\Documents\fragrances\chromedriver.exe")
@@ -110,11 +103,9 @@ def scrape_fragrance_data(lnk, driver):
     brand = soup.find('h6', class_='uppercase text-14 md:text-labLarge').text.strip()
     name = soup.find('h1', class_='text-h1Mobile md:text-h1 font-secondary mt-6 mb-1.5').text.strip()
     desc = soup.find('span', class_='text-16 md:text-18 font-light markdown').text.strip()
-    meta_tag = soup.find('meta', {'name': 'description'})
-    content = meta_tag['content']
-    ingredients_start = content.find("made from") + len("made from ")
-    ingredients_string = content[ingredients_start:]
-    # Split the ingredients by commas and clean up spaces
+    meta_tag = soup.find('meta', {'name': 'description'}).get('content')
+    ingredients_start = meta_tag.find("made from") + len("made from ")
+    ingredients_string = meta_tag[ingredients_start:]
     ingredients = [ingredient.strip() for ingredient in ingredients_string.split(',')]
     ings = []
     for ingredient in ingredients:
@@ -141,15 +132,3 @@ def save_new_to_database(df):
                 # Insert new record if it doesn't exist
                 insert_query = text("INSERT INTO fragrances (Name, Price) VALUES (:name, :price)")
                 conn.execute(insert_query, {'name': row['Name'], 'price': row['Price']})
-
-# if __name__ == "__main__":
-#     links = scrape_fragrance_links()
-#     all_data = []
-#
-#     for link in links:
-#         fragrance_data = scrape_fragrance_data(link)
-#         all_data.append(fragrance_data)
-#
-#     df = pd.DataFrame(all_data)
-#     df.to_csv("fragrance-data.csv")
-#     #save_new_to_database(df)
