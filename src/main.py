@@ -20,7 +20,7 @@ def scrape_data_for_links(links, driver):
         sleep(1)  # Optional: Adds a small delay to avoid overloading the server.
     return all_data
 
-def save_to_csv(data, file_name="fragrance-data.csv"):
+def save_to_csv(data, file_name="fragrance-data-az.csv"):
     """Saves the scraped data to a CSV file."""
     if data:
         df = pd.DataFrame(data)
@@ -33,8 +33,8 @@ def scrape_and_save_data():
     """Main function to scrape and save fragrance data."""
     try:
         # Set the file names
-        input_file_name = "fragrance_links.csv"  # The input CSV file
-        output_file_name = "fragrance-data.csv"  # The output CSV file
+        input_file_name = "fragrance_links_az.csv"  # The input CSV file
+        output_file_name = "fragrance-data-az.csv"  # The output CSV file
 
         # Get the current working directory
         cwd = os.getcwd()  # This gives the current working directory

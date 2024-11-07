@@ -16,7 +16,7 @@ def scrape_fragrance_links(driver):
     links_scraped = []
     links_count = 0  # Track the number of links scraped
 
-    driver.get('https://www.wikiparfum.com/en/fragrances')
+    driver.get('https://www.wikiparfum.com/en/fragrances/?s=name')
 
     while True:
         time.sleep(2)  # Wait for the page to load
@@ -72,7 +72,7 @@ def scrape_fragrance_links(driver):
 # Function to save links to CSV file
 def save_to_csv(links_scraped):
     """ Save the scraped links to a CSV file """
-    with open('fragrance_links.csv', mode='w', newline='', encoding='utf-8') as file:
+    with open('fragrance_links_az.csv', mode='w', newline='', encoding='utf-8') as file:
         writer = csv.writer(file)
         writer.writerow(["Fragrance Link"])
         for link in links_scraped:
